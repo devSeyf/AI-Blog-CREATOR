@@ -154,3 +154,17 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/node,react
+
+
+
+
+
+
+# Visual Studio / VS Code files
+.slnx
+slnx.sqlite
+ProjectSettings.json
+VSWorkspaceState.json
+.vs/
+FileContentIndex/
+v18/
