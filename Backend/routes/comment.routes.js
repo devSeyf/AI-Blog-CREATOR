@@ -2,9 +2,11 @@
 import express from "express";
 import STATUS from "../config/statusCodes.js";
 import Blog from "../models/blog.model.js";
+import Comment from "../models/comment.model.js";
+import authMiddleware from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
-router.post("/add-comment", async (req, res) => {
+router.post("/add-comment", authMiddleware, async (req, res) => {
     try {
         const { name, comment } = req.body;
         const blogId = req.query.blogId;
@@ -24,7 +26,7 @@ router.post("/add-comment", async (req, res) => {
 
 
 
-router.get("/blog-comment/:blogId", async (req, res) => {
+router.get("/blog-comment/:blogId", authMiddleware, async (req, res) => {
     try {
         const { blogId } = req.params;
         const comments = await Comment.find({ blog: blogId }).populate("blog", "title").sort({ createdAt: -1 });
@@ -35,8 +37,5 @@ router.get("/blog-comment/:blogId", async (req, res) => {
 });
 
 
-
-
-
-
+ 
 export default router;

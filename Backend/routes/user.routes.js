@@ -3,8 +3,22 @@ import STATUS from "../config/statusCodes.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
+
+
+function setAuthCookie(res, token) {
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+}
+
+
+
 
 
 router.post("/register", async (req, res) => {
@@ -37,6 +51,8 @@ router.post("/register", async (req, res) => {
         });
 
         await newUser.save();
+
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
         res.status(STATUS.CREATED).json({
             success: true,
@@ -77,7 +93,13 @@ router.post("/login", async (req, res) => {
             return res.status(STATUS.BAD_REQUEST).json({ success: false, message: "Invalid email or password" });
         }
 
-        res.status(STATUS.OK).json({ success: true, message: "User logged in successfully", user: { id: user._id, email: user.email, name: user.name } });
+
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        setAuthCookie(res, token);
+
+
+        res.status(STATUS.OK).json({ success: true, message: "User logged in successfully", user: { id: user._id, email: user.email, name: user.name }, token });
 
 
 
