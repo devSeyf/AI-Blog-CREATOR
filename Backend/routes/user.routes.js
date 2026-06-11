@@ -1,9 +1,12 @@
 import express from "express";
-const router = express.Router();
 import STATUS from "../config/statusCodes.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+
+const router = express.Router();
+
+
 router.post("/register", async (req, res) => {
     try {
         const { email, password, name } = req.body;
