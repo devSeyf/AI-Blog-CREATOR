@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
 
-const blogSchema = new mongoose.Schema({
-    title: {
+const commentSchema = new mongoose.Schema({
+    content: {
         type: String,
-        required: [true, 'Title is required'],
+        required: [true, 'Content is required'],
         trim: true
     },
 
@@ -52,4 +52,4 @@ const blogSchema = new mongoose.Schema({
 )
 
 
-export default mongoose.model('Blog', blogSchema);
+export default mongoose.model('Comment', commentSchema);
