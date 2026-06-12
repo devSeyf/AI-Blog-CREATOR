@@ -41,4 +41,25 @@ router.post("/add-blog", authMiddleware, async (req, res) => {
 });
 
 
+
+router.get("/all-blogs", authMiddleware, async (req, res) => {
+    try {
+        const blogs = await Blog.find({ author: req.user._id }) 
+            .populate("author", "name email")
+            .sort({ createdAt: -1 });
+
+        return res.status(STATUS.OK).json({
+            success: true,
+            message: "Blog posts fetched successfully",
+            data: blogs,
+        });
+    } catch (error) {
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Error fetching blog posts",
+        });
+    }
+});
+
+
 export default router;

@@ -35,4 +35,28 @@ router.get("/blogs-count", authMiddleware, async (req, res) => {
     }
 });
 
+
+
+
+
+
+
+router.get("/user-comments", authMiddleware, async (req, res) => {
+    try {
+        const blogs = await Blog.find({ author: req.user._id });
+        const blogIds = blogs.map(blog => blog._id);
+        const comments = await Comment.find({ blog: { $in: blogIds } })
+            .populate("blog", "title")
+            .populate("author", "name email")
+            .sort({ createdAt: -1 });
+        res.status(STATUS.OK).json({ comments, message: "User comments fetched successfully", count: comments.length });
+
+
+
+    }
+    catch (error) {
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({ message: "Error fetching user comments" });
+    }
+})
+
 export default router;
