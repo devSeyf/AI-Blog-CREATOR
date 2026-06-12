@@ -131,4 +131,30 @@ router.get("/:id", async (req, res) => {
 
 )
 
+
+
+
+router.post("/logout", (req, res) => {
+    res.clearCookie("token");
+    res.status(STATUS.OK).json({ success: true, message: "User logged out successfully" });
+});
+
+
+router.get("/me", authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("-password");
+
+        if (!user) {
+            return res.status(STATUS.NOT_FOUND).json({ success: false, message: "User not found" });
+        }
+
+        res.status(STATUS.OK).json({ success: true, user });
+
+
+    }
+    catch (error) {
+        res.status(STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: "Internal server error" });
+    }
+}
+);
 export default router;
