@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import STATUS from "../config/statusCodes.js";
 
-export const authMiddleware = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
     const token = req.cookies?.token
 
     if (!token)
@@ -17,3 +17,5 @@ export const authMiddleware = (req, res, next) => {
         res.status(STATUS.UNAUTHORIZED).json({ error: "Invalid token" });
     }
 }
+
+export default authMiddleware;

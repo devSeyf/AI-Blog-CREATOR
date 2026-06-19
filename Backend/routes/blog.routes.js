@@ -1,13 +1,12 @@
 import express from "express";
 import STATUS from "../config/statusCodes.js";
 import Blog from "../models/blog.model.js";
-import authMiddleware from "../middlewares/auth.middleware.js";
-
+import authMiddleware from "../middleware/auth.middleware.js";
 const router = express.Router();
 
 
 
-router.get("/all-blogs",   async (req, res) => {
+router.get("/all-blogs", async (req, res) => {
     try {
         const blogs = await Blog.find()
             .populate("author", "name email")

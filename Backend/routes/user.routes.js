@@ -2,24 +2,19 @@ import express from "express";
 import STATUS from "../config/statusCodes.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
-import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
-
 
 function setAuthCookie(res, token) {
     res.cookie("token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 }
-
-
-
-
 
 router.post("/register", async (req, res) => {
     try {
@@ -52,9 +47,13 @@ router.post("/register", async (req, res) => {
 
         await newUser.save();
 
-        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+            expiresIn: "7d",
+        });
 
-        res.status(STATUS.CREATED).json({
+        setAuthCookie(res, token);
+
+        return res.status(STATUS.CREATED).json({
             success: true,
             message: "User registered successfully",
             user: {
@@ -64,7 +63,121 @@ router.post("/register", async (req, res) => {
             },
         });
     } catch (error) {
-        res.status(STATUS.INTERNAL_SERVER_ERROR).json({
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+});
+
+router.post("/login", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: "Please provide all the required fields",
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(STATUS.BAD_REQUEST).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+            expiresIn: "7d",
+        });
+
+        setAuthCookie(res, token);
+
+        return res.status(STATUS.OK).json({
+            success: true,
+            message: "User logged in successfully",
+            user: {
+                id: user._id,
+                email: user.email,
+                name: user.name,
+            },
+        });
+    } catch (error) {
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+});
+
+router.get("/me", authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select("-password");
+
+        if (!user) {
+            return res.status(STATUS.NOT_FOUND).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        return res.status(STATUS.OK).json({
+            success: true,
+            user,
+        });
+    } catch (error) {
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+});
+
+
+router.post("/logout", (req, res) => {
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+    });
+
+    return res.status(STATUS.OK).json({
+        success: true,
+        message: "User logged out successfully",
+    });
+});
+
+
+
+router.get("/:id", async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select("-password");
+
+        if (!user) {
+            return res.status(STATUS.NOT_FOUND).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        return res.status(STATUS.OK).json({
+            success: true,
+            user,
+        });
+    } catch (error) {
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: "Internal server error",
         });
@@ -73,88 +186,4 @@ router.post("/register", async (req, res) => {
 
 
 
-
-router.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(STATUS.BAD_REQUEST).json({ message: "Please provide all the required fields" });
-        }
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: "Invalid email or password" });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (!isMatch) {
-            return res.status(STATUS.BAD_REQUEST).json({ success: false, message: "Invalid email or password" });
-        }
-
-
-
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-        setAuthCookie(res, token);
-
-
-        res.status(STATUS.OK).json({ success: true, message: "User logged in successfully", user: { id: user._id, email: user.email, name: user.name }, token });
-
-
-
-    }
-    catch (error) {
-        res.status(STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: "Internal server error" });
-    }
-
-
-})
-
-
-//get current user details
-router.get("/:id", async (req, res) => {
-
-    try {
-        const user = await User.findById(req.params.id).select("-password");
-
-        if (!user) {
-            return res.status(STATUS.NOT_FOUND).json({ success: false, message: "User not found" });
-        }
-
-        res.status(STATUS.OK).json({ success: true, user });
-    }
-    catch (error) {
-        res.status(STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: "Internal server error" });
-    }
-}
-
-)
-
-
-
-
-router.post("/logout", (req, res) => {
-    res.clearCookie("token");
-    res.status(STATUS.OK).json({ success: true, message: "User logged out successfully" });
-});
-
-
-router.get("/me", authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select("-password");
-
-        if (!user) {
-            return res.status(STATUS.NOT_FOUND).json({ success: false, message: "User not found" });
-        }
-
-        res.status(STATUS.OK).json({ success: true, user });
-
-
-    }
-    catch (error) {
-        res.status(STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: "Internal server error" });
-    }
-}
-);
 export default router;

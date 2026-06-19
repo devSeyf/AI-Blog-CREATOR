@@ -68,7 +68,7 @@ export const loginUser = async (
 
 export const getCurrentuser = async (): Promise<User | null> => {
   try {
-    const res = await api.post<ApiResponse<User>>("/me", {});
+    const res = await api.get<ApiResponse<User>>("/me", {});
 
     return res.data.user || null;
   } catch (error: any) {
@@ -83,7 +83,7 @@ export const logout = async (): Promise<void> => {
 
     return res.data.user || null;
   } catch (error: any) {
-    console.error("logout   Error :", error.response?.data);
+    console.error("logout error :", error.response?.data);
 
     throw new Error("Logout failed");
   }
