@@ -25,30 +25,7 @@ router.get("/all-blogs", async (req, res) => {
     }
 });
 
-router.delete("/delete-blog/:id", authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const blog = await Blog.findById(id);
 
-        if (!blog) {
-            return res.status(STATUS.NOT_FOUND).json({
-                success: false,
-                message: "Blog post not found",
-            });
-        }
-
-        await Blog.findByIdAndDelete(id);
-        return res.status(STATUS.OK).json({
-            success: true,
-            message: "Blog post deleted successfully",
-        });
-    } catch (error) {
-        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: "Error deleting blog post",
-        });
-    }
-});
 
 router.get("/:id", authMiddleware, async (req, res) => {
     try {

@@ -6,7 +6,8 @@ import blogRoutes from "./routes/blog.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import Generate from "../Backend/controllers/blog.controller.js"
+import BlogDashboard from "./routes/dashboard/blog.dashboard.routes.js"
 
 dotenv.config();
 
@@ -27,7 +28,9 @@ connectDB();
 app.use("/users", userRoutes);
 app.use("/blogs", blogRoutes);
 app.use("/comments", commentRoutes);
+app.use("/dashboard/blog", BlogDashboard);
+app.use("/ai", Generate);
 
 app.listen(PORT, () => {
-  console.log(`🖥️ Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`);
 });
