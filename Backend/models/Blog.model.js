@@ -19,7 +19,6 @@ const blogSchema = new mongoose.Schema({
 
     thumbnail: {
         type: String,
-        // default: 'default-thumbnail.jpg'
     },
 
     category: {

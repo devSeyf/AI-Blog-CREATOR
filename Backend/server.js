@@ -8,6 +8,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import Generate from "../Backend/controllers/blog.controller.js"
 import BlogDashboard from "./routes/dashboard/blog.dashboard.routes.js"
+import CommentDashboard from "./routes/dashboard/comment.dashboard.routes.js"
 
 dotenv.config();
 
@@ -29,7 +30,9 @@ app.use("/users", userRoutes);
 app.use("/blogs", blogRoutes);
 app.use("/comments", commentRoutes);
 app.use("/dashboard/blog", BlogDashboard);
+app.use("/dashboard/comment", CommentDashboard);
 app.use("/ai", Generate);
+app.use("/images", express.static("images"));
 
 app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);

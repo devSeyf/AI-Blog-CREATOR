@@ -4,17 +4,19 @@ import Blog from "../../models/blog.model.js";
 import authMiddleware from "../../middleware/auth.middleware.js";
 import STATUS from "../../config/statusCodes.js";
 import multer from "multer";
+import path from "node:path";
 
 const router = express.Router();
 
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, "/.images");
+        cb(null, "images");
     },
 
     filename: function (req, file, cb) {
-        const filename = Date.now() + "-" + file.fieldname
+        const ext = path.extname(file.originalname)
+        const filename = Date.now() + "-" + file.fieldname + ext
 
         cb(null, filename);
     },
@@ -23,10 +25,20 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 
-router.post("/add-blog", upload.single("thumbnail"), authMiddleware, async (req, res) => {
+router.get("/blogs-count", authMiddleware, async (req, res) => {
+    try {
+        const count = await Blog.countDocuments({ author: req.user.id });
+        return res.status(STATUS.OK).json({ count });
+    } catch (error) {
+        return res.status(STATUS.INTERNAL_SERVER_ERROR).json({ message: "Error fetching blogs count" });
+    }
+});
+
+
+router.post("/add-blog", authMiddleware, upload.single("thumbnail"), async (req, res) => {
     try {
         const { title, subtitle, description, category, published } = req.body;
-        if (!title || !description || !category || !author) {
+        if (!title || !description || !category) {
             return res.status(STATUS.BAD_REQUEST).json({
                 success: false,
                 message: "Please provide all the required fields",
@@ -39,7 +51,7 @@ router.post("/add-blog", upload.single("thumbnail"), authMiddleware, async (req,
             description,
             category,
             published: published === "true",
-            author: req.user._id,
+            author: req.user.id,
             thumbnail: req.file?.filename
         });
 
@@ -63,14 +75,14 @@ router.post("/add-blog", upload.single("thumbnail"), authMiddleware, async (req,
 
 router.get("/all-blogs", authMiddleware, async (req, res) => {
     try {
-        const blogs = await Blog.find({ author: req.user._id })
+        const blogs = await Blog.find({ author: req.user.id })
             .populate("author", "name email")
             .sort({ createdAt: -1 });
 
         return res.status(STATUS.OK).json({
             success: true,
             message: "Blog posts fetched successfully",
-            data: blogs,
+            blogs,
         });
     } catch (error) {
         return res.status(STATUS.INTERNAL_SERVER_ERROR).json({

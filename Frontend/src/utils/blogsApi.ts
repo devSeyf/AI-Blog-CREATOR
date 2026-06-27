@@ -1,18 +1,16 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "https://backendblogainode.onrender.com/dashboard/blog",
-  withCredentials: true,
-});
 
-const publicApi = axios.create({
-  baseURL: "https://backendblogainode.onrender.com/blogs",
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const api = axios.create({
+  baseURL: BASE_URL,
   withCredentials: true,
 });
 
 export const getBlogsCount = async (): Promise<number> => {
   try {
-    const res = await api.get("/blogs-count");
+    const res = await api.get("/dashboard/blog/blogs-count");
     return res.data.count || 0;
   } catch (error: any) {
     console.error(
@@ -27,7 +25,7 @@ export const getBlogsCount = async (): Promise<number> => {
 
 export const getAllBlogs = async (): Promise<any[]> => {
   try {
-    const res = await api.get("/all-blogs");
+    const res = await api.get("/dashboard/blog/all-blogs");
     return res.data.blogs;
   } catch (error: any) {
     console.error(
@@ -40,7 +38,7 @@ export const getAllBlogs = async (): Promise<any[]> => {
 
 export const getAllPublicBlogs = async (): Promise<any[]> => {
   try {
-    const res = await publicApi.get("/all-blogs");
+    const res = await api.get("/blogs/all-blogs");
     return res.data.blogs;
   } catch (error: any) {
     console.error(
@@ -53,7 +51,7 @@ export const getAllPublicBlogs = async (): Promise<any[]> => {
 
 export const getBlogById = async (id: string): Promise<any> => {
   try {
-    const res = await publicApi.get(`${id}`);
+    const res = await api.get(`/blogs/${id}`);
     return res.data.blog;
   } catch (error: any) {
     console.error(
@@ -66,7 +64,7 @@ export const getBlogById = async (id: string): Promise<any> => {
 
 export const deleteBlog = async (id: string): Promise<void> => {
   try {
-    await api.delete(`/delete-blog/${id}`);
+    await api.delete(`/dashboard/blog/delete-blog/${id}`);
   } catch (error: any) {
     console.error(
       "Error deleting blog:",

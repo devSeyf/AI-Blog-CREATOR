@@ -15,7 +15,7 @@ router.get("/all-blogs", async (req, res) => {
         return res.status(STATUS.OK).json({
             success: true,
             message: "Blog posts fetched successfully",
-            data: blogs,
+            blogs,
         });
     } catch (error) {
         return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
@@ -47,7 +47,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
         return res.status(STATUS.OK).json({
             success: true,
             message: "Blog post fetched successfully",
-            data: blog,
+            blog,
         });
     } catch (error) {
         return res.status(STATUS.INTERNAL_SERVER_ERROR).json({

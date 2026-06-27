@@ -8,10 +8,24 @@ import authMiddleware from "../middleware/auth.middleware.js";
 const router = express.Router();
 router.post("/add-comment", authMiddleware, async (req, res) => {
     try {
-        const { name, comment } = req.body;
-        const blogId = req.query.blogId;
-        const newComment = await Comment.create({ name, comment, blog: blogId });
-        res.status(STATUS.CREATED).json({ message: "Comment added successfully", comment: newComment });
+        const { username, comment, blogId } = req.body;
+
+        if (!username || !comment || !blogId) {
+            return res.status(STATUS.BAD_REQUEST).json({ message: "Username, comment and blogId are required" });
+        }
+
+        const blogExists = await Blog.exists({ _id: blogId });
+        if (!blogExists) {
+            return res.status(STATUS.NOT_FOUND).json({ message: "Blog post not found" });
+        }
+
+        const newComment = await Comment.create({
+            name: username,
+            comment,
+            blog: blogId,
+            author: req.user.id,
+        });
+        return res.status(STATUS.CREATED).json({ message: "Comment added successfully", comment: newComment });
 
 
 
@@ -26,7 +40,7 @@ router.post("/add-comment", authMiddleware, async (req, res) => {
 
 
 
-router.get("/blog-comment/:blogId", authMiddleware, async (req, res) => {
+router.get("/blog-comment/:blogId", async (req, res) => {
     try {
         const { blogId } = req.params;
         const comments = await Comment.find({ blog: blogId }).populate("blog", "title").sort({ createdAt: -1 });

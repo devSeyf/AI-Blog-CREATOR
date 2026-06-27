@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.get("/all-comments-count", authMiddleware, async (req, res) => {
     try {
-        const blogs = await Blog.find({ author: req.user._id })
+        const blogs = await Blog.find({ author: req.user.id })
         const blogIds = blogs.map(blog => blog._id);
         const comments = await Comment.countDocuments({ blog: { $in: blogIds } });
         res.status(STATUS.OK).json({ count: comments });
@@ -28,7 +28,7 @@ router.get("/all-comments-count", authMiddleware, async (req, res) => {
 
 router.get("/blogs-count", authMiddleware, async (req, res) => {
     try {
-        const count = await Blog.countDocuments({ author: req.user._id });
+        const count = await Blog.countDocuments({ author: req.user.id });
         res.status(STATUS.OK).json({ count });
     } catch (error) {
         return res.status(STATUS.INTERNAL_SERVER_ERROR).json({ message: "Error fetching blogs count" });
@@ -43,7 +43,7 @@ router.get("/blogs-count", authMiddleware, async (req, res) => {
 
 router.get("/user-comments", authMiddleware, async (req, res) => {
     try {
-        const blogs = await Blog.find({ author: req.user._id });
+        const blogs = await Blog.find({ author: req.user.id });
         const blogIds = blogs.map(blog => blog._id);
         const comments = await Comment.find({ blog: { $in: blogIds } })
             .populate("blog", "title")

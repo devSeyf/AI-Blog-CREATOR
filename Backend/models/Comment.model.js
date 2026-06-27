@@ -2,47 +2,26 @@ import mongoose from "mongoose";
 
 
 const commentSchema = new mongoose.Schema({
-    content: {
+    name: {
         type: String,
-        required: [true, 'Content is required'],
+        required: [true, 'Name is required'],
         trim: true
     },
-
-    subtitle: {
+    comment: {
         type: String,
+        required: [true, 'Comment is required'],
         trim: true
     },
-    description: {
-        type: String,
-        required: [true, 'Description is required']
+    blog: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Blog",
+        required: true
     },
-
-    thumbnail: {
-        type: String,
-        // default: 'default-thumbnail.jpg'
-    },
-
-    category: {
-        type: String,
-        required: [true, 'Category is required'],
-        enum: ['Technology', 'Startup', 'Lifestyle', 'Finance']
-    },
-
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
-    },
-
-    published: {
-        type: Boolean,
-        default: false
-    },
-    views: {
-        type: Number,
-        default: 0
-    },
-
+    }
 },
 
     {

@@ -4,6 +4,13 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: true,
+});
+
 function AddBlog() {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -36,11 +43,9 @@ function AddBlog() {
       setAiLoading(true);
       const prompt = title;
 
-      const res = await axios.post(
-        "https://backendblogainode.onrender.com/ai/generate",
+      const res = await api.post(
+        "/ai/generate",
         { prompt },
-
-        { withCredentials: true },
       );
       if (res.data.success) {
         setDescription(res.data.content);
@@ -68,11 +73,9 @@ function AddBlog() {
       formData.append("published", String(published));
       if (thumbnail) formData.append("thumbnail", thumbnail);
 
-      const res = await axios.post(
-        "https://backendblogainode.onrender.com/dashboard/blog/add-blog",
+      const res = await api.post(
+        "/dashboard/blog/add-blog",
         formData,
-
-        { withCredentials: true },
       );
 
       if (res.data.success) {
