@@ -1,5 +1,9 @@
 import express from "express";
 import axios from "axios";
+import {
+  getAiModel,
+  handleOpenRouterError,
+} from "../utils/openRouter.js";
 
 const router = express.Router();
 
@@ -30,7 +34,7 @@ Make it informative and well-structured.`;
     const resAi = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "google/gemma-3-27b-it:free",
+        model: getAiModel(),
         messages: [
           {
             role: "user",
@@ -61,25 +65,7 @@ Make it informative and well-structured.`;
       content: generatedContent,
     });
   } catch (error) {
-    if (error.response) {
-      console.error("🔴 AI Generation Error Response:");
-      console.error("Status:", error.response.status);
-      console.error("Headers:", error.response.headers);
-      console.error("Data:", error.response.data);
-    } else if (error.request) {
-      console.error("🟡 No response received from OpenRouter:");
-      console.error(error.request);
-    } else {
-      console.error("⚠️ Error in request setup:", error.message);
-    }
-
-    return res.status(error.response?.status || 500).json({
-      success: false,
-      message:
-        error.response?.data?.error?.message ||
-        "Failed to generate AI content",
-      error: error.message,
-    });
+    return handleOpenRouterError(error, res, "Blog AI generation");
   }
 });
 

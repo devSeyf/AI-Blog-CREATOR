@@ -1,9 +1,5 @@
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: "http://localhost:5000/users",
-  withCredentials: true,
-});
+import { api } from "./apiClient";
+import { normalizeApiError } from "./apiErrors";
 
 export interface User {
   id: string;
@@ -26,21 +22,15 @@ export const registerUser = async (
   password: string,
 ): Promise<User | null> => {
   try {
-    const res = await api.post<ApiResponse<User>>("/register", {
+    const res = await api.post<ApiResponse<User>>("/users/register", {
       name,
       email,
       password,
     });
 
     return res.data.user || null;
-  } catch (error: any) {
-    console.error("Register error:", error.response?.data);
-
-    throw new Error(
-      error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Registration failed",
-    );
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Registration failed");
   }
 };
 
@@ -49,42 +39,31 @@ export const loginUser = async (
   password: string,
 ): Promise<User | null> => {
   try {
-    const res = await api.post<ApiResponse<User>>("/login", {
+    const res = await api.post<ApiResponse<User>>("/users/login", {
       email,
       password,
     });
 
     return res.data.user || null;
-  } catch (error: any) {
-    console.error("Login error:", error.response?.data);
-بب
-    throw new Error(
-      error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Login failed",
-    );
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Login failed");
   }
 };
 
-export const getCurrentuser = async (): Promise<User | null> => {
+export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const res = await api.get<ApiResponse<User>>("/me", {});
+    const res = await api.get<ApiResponse<User>>("/users/me");
 
     return res.data.user || null;
-  } catch (error: any) {
-    console.error("Auth Check Error :", error.response?.data);
+  } catch {
     return null;
   }
 };
 
 export const logout = async (): Promise<void> => {
   try {
-    const res = await api.post("/logout ");
-
-    return res.data.user || null;
-  } catch (error: any) {
-    console.error("logout error :", error.response?.data);
-
-    throw new Error("Logout failed");
+    await api.post("/users/logout");
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Logout failed");
   }
 };

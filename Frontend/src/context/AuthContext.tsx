@@ -5,15 +5,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import axios from "axios";
 import toast from "react-hot-toast";
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true,
-});
+import {
+  getCurrentUser,
+  loginUser,
+  logout as logoutUser,
+  registerUser,
+} from "../utils/authApi";
 
 interface AuthContextType {
   user: User | null;
@@ -58,9 +56,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const checkAuth = async () => {
     try {
-      const res = await api.get("/users/me");
-      setUser(res.data.user);
-    } catch (error) {
+      setUser(await getCurrentUser());
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
@@ -73,18 +70,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await api.post("/users/login", { email, password });
-
-      setUser(res.data.user);
+      const loggedInUser = await loginUser(email, password);
+      if (!loggedInUser) throw new Error("Login did not return a user account");
+      setUser(loggedInUser);
       toast.success("Login successful");
 
       return { success: true };
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Login failed"
-      );
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Login failed");
 
       return { success: false };
     }
@@ -92,21 +85,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const res = await api.post("/users/register", {
-        name,
-        email,
-        password,
-      });
-
-      setUser(res.data.user);
+      const registeredUser = await registerUser(name, email, password);
+      if (!registeredUser) throw new Error("Registration did not return a user account");
+      setUser(registeredUser);
       toast.success("Registration successful!");
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(
-        error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Registration failed"
+        error instanceof Error ? error.message : "Registration failed",
       );
 
       return { success: false };
@@ -115,7 +102,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = async () => {
     try {
-      await api.post("/users/logout");
+      await logoutUser();
 
       setUser(null);
       toast.success("Logged out successfully");

@@ -1,80 +1,105 @@
-import React, { useEffect, useState } from "react";
+import { Eye, FileText, MessageSquare, PenSquare } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import BlogTable, { type DashboardBlog } from "../components/BlogTable";
+import { ErrorState, LoadingState } from "../components/ui/AsyncState";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { buttonStyles, cardStyles, pageStyles } from "../styles/ui";
 import { getAllBlogs, getBlogsCount } from "../utils/blogsApi";
-import { FileText, MessageSquare } from "lucide-react";
-import BlogTable from "../components/BlogTable";
 import { getMyCommentsCount } from "../utils/commentApi";
 
-function Dashboard() {
+export default function Dashboard() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [commentsCount, setCommentsCount] = useState<number>(0);
-
-  const [blogs, setBlogs] = useState<any[]>([]);
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/login");
-    }
-  }, [user, authLoading, navigate]);
-
-  const [blogsCount, setBlogsCount] = useState<number>(0);
-
+  const [blogs, setBlogs] = useState<DashboardBlog[]>([]);
+  const [blogsCount, setBlogsCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const count = await getBlogsCount();
-        setBlogsCount(count);
-        const allBlogs = await getAllBlogs();
-        setBlogs(allBlogs);
+    if (!authLoading && !user) navigate("/login", { replace: true });
+  }, [authLoading, navigate, user]);
 
-        const comments = await getMyCommentsCount();
+  useEffect(() => {
+    if (authLoading || !user) return;
+    let active = true;
+
+    const loadDashboard = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const [count, allBlogs, comments] = await Promise.all([
+          getBlogsCount(),
+          getAllBlogs(),
+          getMyCommentsCount(),
+        ]);
+        if (!active) return;
+        setBlogsCount(count);
+        setBlogs(allBlogs);
         setCommentsCount(comments);
-      } catch (error) {
-        console.error(error);
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : "Failed to load dashboard");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
-    fetchCount();
-  }, []);
+
+    void loadDashboard();
+    return () => {
+      active = false;
+    };
+  }, [authLoading, reloadKey, user]);
+
+  const totalViews = useMemo(
+    () => blogs.reduce((sum, blog) => sum + (blog.views || 0), 0),
+    [blogs],
+  );
+
+  const handleDeleted = (id: string) => {
+    setBlogs((current) => current.filter((blog) => blog._id !== id));
+    setBlogsCount((current) => Math.max(0, current - 1));
+  };
+
+  if (authLoading || loading) return <LoadingState message="Loading your dashboard..." />;
+
+  if (error) {
+    return <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />;
+  }
+
+  const stats = [
+    { label: "Total blogs", value: blogsCount, icon: FileText, color: "text-cyan-700 bg-cyan-100" },
+    { label: "Comments", value: commentsCount, icon: MessageSquare, color: "text-emerald-700 bg-emerald-100" },
+    { label: "Total views", value: totalViews, icon: Eye, color: "text-amber-700 bg-amber-100" },
+  ];
+
   return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="flex items-center gap-3 rounded-xl shadow-sm border border-emerald-100 p-6 hover:shadow-md transition bg-white">
-          <div className="p-3 bg-emerald-100 rounded-lg">
-            <FileText className="text-emerald-600 w-6 h-6" />
-          </div>
-
-          <div>
-            <h2 className="text-3xl font-bold text-emerald-700">
-              {loading ? "...." : blogsCount}
-            </h2>
-
-            <p className="text-gray-500 font-medium">Blogs</p>
-          </div>
+    <div className={`${pageStyles} space-y-6`}>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Your workspace</p>
+          <h2 className="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">Everything you have published.</h2>
+          <p className="mt-2 text-sm text-slate-500">Track content, engagement, and recent activity.</p>
         </div>
-
-        <div className="flex items-center gap-3 rounded-xl shadow-sm border border-emerald-100 p-6 hover:shadow-md transition bg-white">
-          <div className="p-3 bg-emerald-100 rounded-lg">
-            <MessageSquare className="text-emerald-600 w-6 h-6" />
-          </div>
-
-          <div>
-            <h2 className="text-3xl font-bold text-emerald-700">
-              {loading ? "...." : commentsCount}
-            </h2>
-
-            <p className="text-gray-500 font-medium">Comments</p>
-          </div>
-        </div>
+        <Link to="/dashboard/add-blog" className={buttonStyles.primary}>
+          <PenSquare className="size-4" /> New blog
+        </Link>
       </div>
 
-      <BlogTable blogs={blogs} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {stats.map(({ label, value, icon: Icon, color }) => (
+          <article key={label} className={`${cardStyles} p-5`}>
+            <div className={`inline-flex size-10 items-center justify-center rounded-xl ${color}`}>
+              <Icon className="size-5" />
+            </div>
+            <p className="mt-4 text-3xl font-black text-slate-950">{value}</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">{label}</p>
+          </article>
+        ))}
+      </div>
+
+      <BlogTable blogs={blogs} onDelete={handleDeleted} />
     </div>
   );
 }
-
-export default Dashboard;

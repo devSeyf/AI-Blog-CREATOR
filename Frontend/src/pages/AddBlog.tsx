@@ -1,235 +1,253 @@
-import React, { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { ImagePlus, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  buttonStyles,
+  cardStyles,
+  fieldStyles,
+  labelStyles,
+  pageStyles,
+} from "../styles/ui";
+import { api } from "../utils/apiClient";
+import { normalizeApiError } from "../utils/apiErrors";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true,
-});
-
-function AddBlog() {
+export default function AddBlog() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [published, setPublished] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  if (!user) {
-    navigate("/login");
-  }
+  useEffect(() => {
+    if (!authLoading && !user) navigate("/login", { replace: true });
+  }, [authLoading, navigate, user]);
 
   useEffect(() => {
     return () => {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
+
+  const clearThumbnail = () => {
+    setThumbnail(null);
+    setPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleFileChange = (file?: File) => {
+    if (!file) {
+      clearThumbnail();
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      clearThumbnail();
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Thumbnail must be smaller than 5 MB.");
+      clearThumbnail();
+      return;
+    }
+
+    setThumbnail(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
   const handleGenerateAI = async () => {
-    if (!title) {
-      toast.error("Please enter a topic or title first");
+    if (!title.trim()) {
+      toast.error("Enter a title before generating content.");
       return;
     }
 
     try {
       setAiLoading(true);
-      const prompt = title;
-
-      const res = await api.post(
-        "/ai/generate",
-        { prompt },
-      );
-      if (res.data.success) {
-        setDescription(res.data.content);
-        toast.success("AI content generated successfully!");
-      } else {
-        toast.error("Failed to generate content.");
-      }
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.response?.data?.message);
+      const response = await api.post("/ai/generate", { prompt: title.trim() });
+      if (!response.data?.content) throw new Error("AI returned no content.");
+      setDescription(response.data.content);
+      toast.success("AI content generated successfully");
+    } catch (error) {
+      toast.error(normalizeApiError(error, "AI generation failed. Please try again later.").message);
     } finally {
       setAiLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
+
     try {
-      setLoading(true);
+      setSubmitting(true);
       const formData = new FormData();
-      formData.append("title", title);
-      formData.append("subtitle", subtitle);
+      formData.append("title", title.trim());
+      formData.append("subtitle", subtitle.trim());
       formData.append("category", category);
-      formData.append("description", description);
+      formData.append("description", description.trim());
       formData.append("published", String(published));
       if (thumbnail) formData.append("thumbnail", thumbnail);
 
-      const res = await api.post(
-        "/dashboard/blog/add-blog",
-        formData,
-      );
+      const response = await api.post("/dashboard/blog/add-blog", formData);
+      if (!response.data?.success) throw new Error("Failed to add blog");
 
-      if (res.data.success) {
-        toast.success("Blog added successfully");
-        setTitle("");
-        setSubtitle("");
-        setCategory("");
-        setDescription("");
-        setThumbnail(null);
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to add blog");
+      setTitle("");
+      setSubtitle("");
+      setCategory("");
+      setDescription("");
+      setPublished(false);
+      clearThumbnail();
+      toast.success("Blog created successfully");
+      navigate("/dashboard");
+    } catch (error) {
+      toast.error(normalizeApiError(error, "Failed to add blog").message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  if (authLoading || !user) return null;
+
   return (
-    <div
-      className="min-h-screen bg-linear-to-br from-sky-50 via-cyan-50 to-emerald-50 flex justify-center p-6
-    "
-    >
-      <form
-        className="bg-white/80 backdrop-blur-md w-full max-w-2xl rounded-2xl shadow-lg p-8 space-y-5"
-        onSubmit={handleSubmit}
-      >
-        <h2 className="text-2xl font-bold text-sky-800 text-center mb-6">
-          Create a New Blog 📝
-        </h2>
+    <div className={`${pageStyles} max-w-5xl`}>
+      <div className="mb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Creator studio</p>
+        <h2 className="mt-1 text-2xl font-bold text-slate-950 sm:text-3xl">Create a new blog</h2>
+        <p className="mt-2 text-sm text-slate-500">Draft your story, generate a starting point with AI, and publish when ready.</p>
+      </div>
 
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium text-sky-800 mb-1">
-            Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-sky-200 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-sky-300"
-            placeholder="Enter blog title"
-            required
-          />
-        </div>
-
-        {/* Subtitle */}
-        <div>
-          <label className="block text-sm font-medium text-sky-800 mb-1">
-            Subtitle
-          </label>
-          <input
-            type="text"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            className="w-full border border-sky-200 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-sky-300"
-            placeholder="Enter subtitle (optional)"
-          />
-        </div>
-
-        {/* Category */}
-        <div>
-          <label className="block text-sm font-medium text-sky-800 mb-1">
-            Category
-          </label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full border border-sky-200 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-sky-300"
-            required
-          >
-            <option value="">Select a category</option>
-            <option value="Technology">Technology</option>
-            <option value="Startup">Startup</option>
-            <option value="Lifestyle">Lifestyle</option>
-            <option value="Finance">Finance</option>
-          </select>
-        </div>
-
-        {/* Description + AI Generation */}
-        <div>
-          <label className="block text-sm font-medium text-sky-800 mb-1">
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={7}
-            className="w-full border border-sky-200 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-sky-300"
-            placeholder="Write your blog content..."
-          />
-          <button
-            type="button"
-            onClick={handleGenerateAI}
-            className="mt-3 text-sm px-4 py-2 bg-linear-to-r from-emerald-400 to-cyan-400 text-white rounded-lg hover:from-emerald-500 hover:to-cyan-500 transition"
-            disabled={aiLoading}
-          >
-            {aiLoading ? "Generating..." : "✨ Generate by AI"}
-          </button>
-        </div>
-
-        {/* Thumbnail */}
-        <div>
-          <label className="block text-sm font-medium text-sky-800 mb-1">
-            Thumbnail
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0] || null;
-              setThumbnail(file);
-              if (file) {
-                const previewUrl = URL.createObjectURL(file);
-                setPreview(previewUrl);
-              }
-            }}
-            className="w-full border border-sky-200 rounded-lg px-4 py-2"
-          />
-
-          {preview && (
-            <div className="mt-3">
-              <p className="text-sm text-sky-700 mb-2">Preview:</p>
-              <img
-                src={preview}
-                alt="Thumbnail Preview"
-                className="w-full h-64 object-cover rounded-lg shadow-md border border-sky-100"
+      <form onSubmit={handleSubmit} className={`${cardStyles} overflow-hidden`}>
+        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="space-y-5">
+            <div>
+              <label htmlFor="blog-title" className={labelStyles}>Title</label>
+              <input
+                id="blog-title"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className={fieldStyles}
+                placeholder="A clear, compelling title"
+                required
               />
             </div>
-          )}
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="blog-subtitle" className={labelStyles}>Subtitle</label>
+                <input
+                  id="blog-subtitle"
+                  value={subtitle}
+                  onChange={(event) => setSubtitle(event.target.value)}
+                  className={fieldStyles}
+                  placeholder="Optional supporting line"
+                />
+              </div>
+              <div>
+                <label htmlFor="blog-category" className={labelStyles}>Category</label>
+                <select
+                  id="blog-category"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  className={fieldStyles}
+                  required
+                >
+                  <option value="">Select a category</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Startup">Startup</option>
+                  <option value="Lifestyle">Lifestyle</option>
+                  <option value="Finance">Finance</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="blog-description" className="text-sm font-semibold text-slate-700">Content</label>
+                <button
+                  type="button"
+                  disabled={aiLoading || submitting}
+                  onClick={handleGenerateAI}
+                  className={buttonStyles.secondary}
+                >
+                  {aiLoading ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                  {aiLoading ? "Generating..." : "Generate with AI"}
+                </button>
+              </div>
+              <textarea
+                id="blog-description"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                rows={14}
+                className={`${fieldStyles} resize-y leading-6`}
+                placeholder="Write your story here..."
+                required
+              />
+            </div>
+          </div>
+
+          <aside className="space-y-5">
+            <div>
+              <label htmlFor="blog-thumbnail" className={labelStyles}>Thumbnail</label>
+              <input
+                ref={fileInputRef}
+                id="blog-thumbnail"
+                type="file"
+                accept="image/*"
+                onChange={(event) => handleFileChange(event.target.files?.[0])}
+                className="sr-only"
+              />
+              {preview ? (
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  <img src={preview} alt="Thumbnail preview" className="aspect-video w-full object-cover" />
+                  <button type="button" onClick={clearThumbnail} className={`${buttonStyles.ghost} w-full rounded-none text-rose-600`}>
+                    <Trash2 className="size-4" /> Remove image
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="blog-thumbnail"
+                  className="flex aspect-video cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-5 text-center transition hover:border-cyan-400 hover:bg-cyan-50"
+                >
+                  <ImagePlus className="mb-2 size-7 text-cyan-700" />
+                  <span className="text-sm font-semibold text-slate-700">Upload thumbnail</span>
+                  <span className="mt-1 text-xs text-slate-500">Image up to 5 MB</span>
+                </label>
+              )}
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <input
+                type="checkbox"
+                checked={published}
+                onChange={(event) => setPublished(event.target.checked)}
+                className="mt-0.5 size-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">Publish immediately</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Make this story visible on the public home page.</span>
+              </span>
+            </label>
+          </aside>
         </div>
 
-        {/* Published */}
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={published}
-            onChange={(e) => setPublished(e.target.checked)}
-            id="published"
-          />
-          <label htmlFor="published" className="text-sky-800 text-sm">
-            Publish immediately
-          </label>
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+          <button type="button" onClick={() => navigate("/dashboard")} className={buttonStyles.secondary}>
+            Cancel
+          </button>
+          <button type="submit" disabled={submitting || aiLoading} className={buttonStyles.primary}>
+            {submitting && <LoaderCircle className="size-4 animate-spin" />}
+            {submitting ? "Publishing..." : published ? "Publish blog" : "Save draft"}
+          </button>
         </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          className="w-full mt-4 bg-linear-to-r from-sky-400 to-cyan-400 text-white py-2 rounded-lg font-semibold hover:from-sky-500 hover:to-cyan-500 transition"
-          disabled={loading}
-        >
-          {loading ? "Submitting..." : "Add Blog"}
-        </button>
       </form>
     </div>
   );
 }
-
-export default AddBlog;

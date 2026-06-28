@@ -1,22 +1,12 @@
-import axios from "axios";
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true,
-});
+import { api } from "./apiClient";
+import { normalizeApiError } from "./apiErrors";
 
 export const getCommentsByBlog = async (blogId: string): Promise<any> => {
   try {
     const res = await api.get(`/comments/blog-comment/${blogId}`);
     return res.data.comments;
-  } catch (error: any) {
-    console.error(
-      "Error fetching comments:",
-      error.response?.data || error.message
-    );
-    throw new Error(error.response?.data?.message || "Failed to fetch comment");
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Failed to fetch comments");
   }
 };
 
@@ -24,12 +14,8 @@ export const getMyBlogComments = async (): Promise<any> => {
   try {
     const res = await api.get("/dashboard/comment/user-comments");
     return res.data.comments;
-  } catch (error: any) {
-    console.error(
-      "Error fetching comments:",
-      error.response?.data || error.message
-    );
-    throw new Error(error.response?.data?.message || "Failed to fetch comment");
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Failed to fetch comments");
   }
 };
 
@@ -46,12 +32,8 @@ export const addComment = async (
     });
 
     return res.data.comment;
-  } catch (error: any) {
-    console.error(
-      "Error adding comment:",
-      error.response?.data || error.message
-    );
-    throw new Error(error.response?.data?.message || "Failed to add comment");
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Failed to add comment");
   }
 };
 
@@ -61,14 +43,8 @@ export const generateAiCommentSuggestions = async (
   try {
     const res = await api.post("/commentAi/generate-comment", { topic });
     return res.data.suggestions || [];
-  } catch (error: any) {
-    console.error(
-      "Error fetching AI comments:",
-      error.response?.data || error.message
-    );
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch AI comment"
-    );
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Failed to generate AI comments");
   }
 };
 
@@ -76,13 +52,7 @@ export const getMyCommentsCount = async (): Promise<number> => {
   try {
     const res = await api.get("/dashboard/comment/user-comments");
     return res.data.count || 0;
-  } catch (error: any) {
-    console.error(
-      "Error fetching comments count:",
-      error.response?.data || error.message
-    );
-    throw new Error(
-      error.response?.data?.message || "Failed to fetch comments count"
-    );
+  } catch (error: unknown) {
+    throw normalizeApiError(error, "Failed to fetch comments count");
   }
 };

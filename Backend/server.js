@@ -7,6 +7,7 @@ import commentRoutes from "./routes/comment.routes.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import Generate from "../Backend/controllers/blog.controller.js"
+import commentAiRouter from "./controllers/comment.controller.js";
 import BlogDashboard from "./routes/dashboard/blog.dashboard.routes.js"
 import CommentDashboard from "./routes/dashboard/comment.dashboard.routes.js"
 
@@ -32,7 +33,11 @@ app.use("/comments", commentRoutes);
 app.use("/dashboard/blog", BlogDashboard);
 app.use("/dashboard/comment", CommentDashboard);
 app.use("/ai", Generate);
+app.use("/commentAi", commentAiRouter);
 app.use("/images", express.static("images"));
+
+
+
 
 app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);

@@ -1,24 +1,19 @@
-import { Trash } from "lucide-react";
-import React from "react";
-import { deleteBlog } from "../utils/blogsApi";
+import { Eye, LoaderCircle, Trash2 } from "lucide-react";
+import { useState } from "react";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
+import { buttonStyles, cardStyles } from "../styles/ui";
+import { getAssetUrl } from "../utils/apiClient";
+import { deleteBlog } from "../utils/blogsApi";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-interface Author {
-  _id?: string;
-  name: string;
-  email?: string;
-}
-
-interface Blog {
+export interface DashboardBlog {
   _id: string;
   title: string;
   subtitle?: string;
   description: string;
   thumbnail?: string;
   category: "Technology" | "Startup" | "Lifestyle" | "Finance";
-  author: Author;
+  author?: { name?: string; email?: string };
   published: boolean;
   views: number;
   createdAt: string;
@@ -26,89 +21,104 @@ interface Blog {
 }
 
 interface BlogTableProps {
-  blogs: Blog[];
-  onDelete?: (id: string) => void;
+  blogs: DashboardBlog[];
+  onDelete: (id: string) => void;
 }
 
-function BlogTable({ blogs, onDelete }: BlogTableProps) {
+export default function BlogTable({ blogs, onDelete }: BlogTableProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this blog?")) return;
+    if (!window.confirm("Delete this blog permanently?")) return;
 
     try {
+      setDeletingId(id);
       await deleteBlog(id);
+      onDelete(id);
       toast.success("Blog deleted successfully");
-
-      if (onDelete) {
-        onDelete(id);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete blog");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete blog");
+    } finally {
+      setDeletingId(null);
     }
   };
 
   return (
-    <div className="bg-white shadow-sm border mt-5 border-emerald-100 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-emerald-700 mb-4 flex items-center gap-2">
-        Recent Blogs
-      </h3>
+    <section className={`${cardStyles} overflow-hidden`}>
+      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
+        <div>
+          <h2 className="font-bold text-slate-900">Recent blogs</h2>
+          <p className="text-sm text-slate-500">Manage your latest writing.</p>
+        </div>
+        <Link to="/dashboard/add-blog" className={buttonStyles.secondary}>
+          Add blog
+        </Link>
+      </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse">
-          <thead>
-            <tr className="bg-emerald-50 text-emerald-700 text-left text-sm font-medium">
-              <th className="p-3 border-b">#</th>
-              <th className="p-3 border-b">BLOG TITLE</th>
-              <th className="p-3 border-b">AUTHOR</th>
-              <th className="p-3 border-b">VIEWS</th>
-              <th className="p-3 border-b">THUMBNAIL</th>
-              <th className="p-3 border-b">DATE</th>
-              <th className="p-3 border-b">ACTION</th>
+        <table className="min-w-[760px] w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-5 py-3">Blog</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Views</th>
+              <th className="px-5 py-3">Published</th>
+              <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
-
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {blogs.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-4 text-center text-gray-500">
-                  No blogs found
+                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  No blogs yet. Create your first story to populate the dashboard.
                 </td>
               </tr>
             ) : (
-              blogs.map((blog, index) => (
-                <tr key={blog._id}>
-                  <td className="p-3 border-b">{index + 1}</td>
-
-                  <td className="p-3 border-b">{blog.title}</td>
-
-                  <td className="p-3 border-b">
-                    {blog.author?.name || "Unknown"}
+              blogs.map((blog) => (
+                <tr key={blog._id} className="transition hover:bg-slate-50/80">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      {blog.thumbnail ? (
+                        <img
+                          src={getAssetUrl(`/images/${blog.thumbnail}`)}
+                          alt=""
+                          className="size-11 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="size-11 rounded-lg bg-gradient-to-br from-cyan-100 to-emerald-100" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="max-w-72 truncate font-semibold text-slate-900">{blog.title}</p>
+                        <p className="text-xs text-slate-500">{blog.category}</p>
+                      </div>
+                    </div>
                   </td>
-
-                  <td className="p-3 border-b">{blog.views}</td>
-
-                  <td className="p-3 border-b">
-                    {blog.thumbnail ? (
-                      <img
-                        src={`${BASE_URL}/images/${blog.thumbnail}`}
-                        alt={blog.title}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    ) : (
-                      <span className="text-gray-400">No image</span>
-                    )}
+                  <td className="px-5 py-4">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${blog.published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                      {blog.published ? "Published" : "Draft"}
+                    </span>
                   </td>
-
-                  <td className="p-3 border-b">
-                    {new Date(blog.createdAt).toLocaleDateString()}
-                  </td>
-
-                  <td className="p-3 border-b">
-                    <button
-                      onClick={() => handleDelete(blog._id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash />
-                    </button>
+                  <td className="px-5 py-4 text-slate-600">{blog.views || 0}</td>
+                  <td className="px-5 py-4 text-slate-500">{new Date(blog.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-1">
+                      <Link
+                        to={`/blog-details/${blog._id}`}
+                        aria-label={`Open ${blog.title}`}
+                        className="rounded-lg p-2 text-slate-500 transition hover:bg-cyan-50 hover:text-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+                      >
+                        <Eye className="size-4" />
+                      </Link>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${blog.title}`}
+                        disabled={deletingId === blog._id}
+                        onClick={() => handleDelete(blog._id)}
+                        className="rounded-lg p-2 text-rose-500 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:opacity-50"
+                      >
+                        {deletingId === blog._id ? <LoaderCircle className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -116,8 +126,6 @@ function BlogTable({ blogs, onDelete }: BlogTableProps) {
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }
-
-export default BlogTable;

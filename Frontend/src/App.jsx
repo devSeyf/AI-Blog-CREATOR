@@ -2,6 +2,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useLocation,
 } from "react-router-dom";
 
@@ -25,7 +26,7 @@ function AppContent() {
       {!isDashboardPage && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/add-blog" element={<AddBlog />} />
+        <Route path="/add-blog" element={<Navigate to="/dashboard/add-blog" replace />} />
         <Route path="/login" element={<Login />} />
 
         <Route path="/register" element={<Register />} />
@@ -34,9 +35,10 @@ function AppContent() {
         {/*  Dashboard routes with Outlet */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="/dashboard/add-blog" element={<AddBlog />} />
-          <Route path="/dashboard/comments" element={<DashboardComments />} />
+          <Route path="add-blog" element={<AddBlog />} />
+          <Route path="comments" element={<DashboardComments />} />
         </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );

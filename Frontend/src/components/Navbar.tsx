@@ -1,4 +1,3 @@
-import logo from "../assets/logo.jpg";
 import {
   Disclosure,
   DisclosureButton,
@@ -8,170 +7,155 @@ import {
   MenuItem,
   MenuItems,
 } from "@headlessui/react";
-import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { LogOut, Menu as MenuIcon, X } from "lucide-react";
+import { useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import logo from "../assets/logo.jpg";
+import { buttonStyles } from "../styles/ui";
 
-const navigation = [
-  { name: "Dashboard", href: "#", current: true },
-  { name: "Team", href: "#", current: false },
-  { name: "Projects", href: "#", current: false },
-  { name: "Calendar", href: "#", current: false },
+const publicNavigation = [{ name: "Home", href: "/" }];
+const privateNavigation = [
+  { name: "Dashboard", href: "/dashboard" },
+  { name: "Write Blog", href: "/dashboard/add-blog" },
+  { name: "Comments", href: "/dashboard/comments" },
 ];
 
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
-}
+const navClass = ({ isActive }: { isActive: boolean }) =>
+  `rounded-lg px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+    isActive
+      ? "bg-cyan-50 text-cyan-800"
+      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+  }`;
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const navigation = user
+    ? [...publicNavigation, ...privateNavigation]
+    : publicNavigation;
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logout();
+      navigate("/");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <Disclosure
       as="nav"
-      className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl shadow-sm"
+      className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur-xl"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative flex h-16 items-center justify-between">
-          {/* Mobile menu button */}
-          <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-            <DisclosureButton className="group inline-flex items-center justify-center rounded-xl p-2 text-slate-600 transition hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <span className="sr-only">Open main menu</span>
-              <Bars3Icon
-                aria-hidden="true"
-                className="block size-6 group-data-open:hidden"
-              />
-              <XMarkIcon
-                aria-hidden="true"
-                className="hidden size-6 group-data-open:block"
-              />
-            </DisclosureButton>
+        <div className="flex h-16 items-center justify-between">
+          <Link
+            to="/"
+            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+          >
+            <img src={logo} alt="" className="size-10 rounded-xl object-cover" />
+            <span className="text-xl font-black tracking-tight text-slate-900">
+              AI<span className="text-cyan-600">BLOG</span>
+            </span>
+          </Link>
+
+          <div className="hidden items-center gap-1 md:flex">
+            {navigation.map((item) => (
+              <NavLink key={item.href} to={item.href} className={navClass} end={item.href === "/"}>
+                {item.name}
+              </NavLink>
+            ))}
           </div>
 
-          {/* Logo + Navigation */}
-          <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-            <div>
-              <img src={logo} alt="AI Blog Logo" width="50" />
-            </div>
-
-            <div className="hidden sm:ml-8 sm:block">
-              <div className="flex items-center gap-2">
-                {navigation.map((item) => (
-                  <a
-                    key={item.name}
-                    href={item.href}
-                    aria-current={item.current ? "page" : undefined}
-                    className={classNames(
-                      item.current
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-600 hover:bg-blue-50 hover:text-blue-600",
-                      "rounded-xl px-4 py-2 text-sm font-medium transition",
-                    )}
-                  >
-                    {item.name}
-                  </a>
-                ))}
+          <div className="flex items-center gap-2">
+            {!user ? (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Link to="/login" className={buttonStyles.ghost}>
+                  Login
+                </Link>
+                <Link to="/register" className={buttonStyles.primary}>
+                  Sign Up
+                </Link>
               </div>
-            </div>
-          </div>
+            ) : (
+              <Menu as="div" className="relative hidden sm:block">
+                <MenuButton className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pr-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
+                  <img
+                    alt=""
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0891b2&color=fff`}
+                    className="size-8 rounded-lg"
+                  />
+                  <span className="max-w-28 truncate">{user.name}</span>
+                </MenuButton>
+                <MenuItems
+                  transition
+                  anchor="bottom end"
+                  className="z-50 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition duration-100 data-closed:scale-95 data-closed:opacity-0"
+                >
+                  <MenuItem>
+                    <button
+                      type="button"
+                      disabled={loggingOut}
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-600 data-focus:bg-rose-50 disabled:opacity-50"
+                    >
+                      <LogOut className="size-4" />
+                      {loggingOut ? "Signing out..." : "Sign out"}
+                    </button>
+                  </MenuItem>
+                </MenuItems>
+              </Menu>
+            )}
 
-          {/* Right actions */}
-          <div className="absolute inset-y-0 right-0 flex items-center gap-3 pr-4 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-            <button
-              type="button"
-              className="relative rounded-full p-2 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <span className="sr-only">View notifications</span>
-              <BellIcon aria-hidden="true" className="size-6" />
-            </button>
-
-            {/* Profile dropdown */}
-            <Menu as="div" className="relative">
-              {!user ? (
-                <div className="flex items-center gap-2">
-                  <Link
-                    to="/login"
-                    className="rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-blue-50 hover:text-blue-600"
-                  >
-                    Login
-                  </Link>
-
-                  <Link
-                    to="/register"
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
-                  >
-                    Register
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <MenuButton className="flex rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    <span className="sr-only">Open user menu</span>
-                    <img
-                      alt=""
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                      className="size-9 rounded-full border border-slate-200 bg-slate-100 object-cover shadow-sm"
-                    />
-                  </MenuButton>
-
-                  <MenuItems
-                    transition
-                    className="absolute right-0 z-10 mt-3 w-52 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white py-2 shadow-xl outline-none transition data-closed:scale-95 data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
-                  >
-                    <MenuItem>
-                      <a
-                        href="#"
-                        className="block px-4 py-2.5 text-sm text-slate-700 transition data-focus:bg-blue-50 data-focus:text-blue-600 data-focus:outline-none"
-                      >
-                        Your profile
-                      </a>
-                    </MenuItem>
-
-                    <MenuItem>
-                      <a
-                        href="#"
-                        className="block px-4 py-2.5 text-sm text-slate-700 transition data-focus:bg-blue-50 data-focus:text-blue-600 data-focus:outline-none"
-                      >
-                        Settings
-                      </a>
-                    </MenuItem>
-
-                    <MenuItem>
-                      <button
-                        onClick={logout}
-                        className="block w-full px-4 py-2.5 text-left text-sm text-red-600 transition data-focus:bg-red-50 data-focus:outline-none"
-                      >
-                        Sign out
-                      </button>
-                    </MenuItem>
-                  </MenuItems>
-                </>
-              )}
-            </Menu>
+            <DisclosureButton className="group inline-flex size-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 md:hidden">
+              <span className="sr-only">Toggle navigation</span>
+              <MenuIcon className="size-5 group-data-open:hidden" />
+              <X className="hidden size-5 group-data-open:block" />
+            </DisclosureButton>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <DisclosurePanel className="border-t border-slate-200 bg-white/95 sm:hidden">
-        <div className="space-y-1 px-4 pb-4 pt-3">
+      <DisclosurePanel className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
+        <div className="space-y-1">
           {navigation.map((item) => (
             <DisclosureButton
-              key={item.name}
-              as="a"
-              href={item.href}
-              aria-current={item.current ? "page" : undefined}
-              className={classNames(
-                item.current
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-600 hover:bg-blue-50 hover:text-blue-600",
-                "block rounded-xl px-4 py-2.5 text-base font-medium transition",
-              )}
+              key={item.href}
+              as={NavLink}
+              to={item.href}
+              end={item.href === "/"}
+              className={({ isActive }: { isActive: boolean }) =>
+                `${navClass({ isActive })} block w-full`
+              }
             >
               {item.name}
             </DisclosureButton>
           ))}
         </div>
+        {!user ? (
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200 pt-4 sm:hidden">
+            <DisclosureButton as={Link} to="/login" className={buttonStyles.secondary}>
+              Login
+            </DisclosureButton>
+            <DisclosureButton as={Link} to="/register" className={buttonStyles.primary}>
+              Sign Up
+            </DisclosureButton>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={loggingOut}
+            onClick={handleLogout}
+            className={`${buttonStyles.danger} mt-4 w-full sm:hidden`}
+          >
+            <LogOut className="size-4" />
+            {loggingOut ? "Signing out..." : "Sign out"}
+          </button>
+        )}
       </DisclosurePanel>
     </Disclosure>
   );

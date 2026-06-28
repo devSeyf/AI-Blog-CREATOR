@@ -1,97 +1,75 @@
-import React, { useState } from "react";
-import { loginUser } from "../utils/authApi";
-import { useAuth } from "../context/AuthContext";
-import toast from "react-hot-toast";
+import { LoaderCircle, LogIn } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { buttonStyles, cardStyles, fieldStyles, labelStyles } from "../styles/ui";
 
-function Login() {
-  const { setUser } = useAuth();
+export default function Login() {
+  const { login } = useAuth();
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading) return;
     try {
-      const user = await loginUser(email, password);
-
-      if (user) {
-        setUser(user);
-        toast.success("Welcome back! 👋");
-        navigate("/");
-      } else {
-        toast.error("Invalid email or password.");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Login failed");
+      setLoading(true);
+      const result = await login(email, password);
+      if (result.success) navigate("/dashboard");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-cyan-50 to-emerald-50 px-4">
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-sky-800 mb-6 text-center">
-          Welcome Back
-        </h2>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 pb-12 pt-28">
+      <section className={`${cardStyles} w-full max-w-md p-6 sm:p-8`}>
+        <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">AIBLOG workspace</p>
+        <h1 className="mt-3 text-center text-3xl font-black text-slate-950">Welcome back</h1>
+        <p className="mt-2 text-center text-sm text-slate-500">Sign in to manage your stories and comments.</p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-sky-800 mb-1">
-              Email
-            </label>
-
+            <label htmlFor="login-email" className={labelStyles}>Email</label>
             <input
+              id="login-email"
               type="email"
+              autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-sky-200 px-4 py-2 focus:ring-2 focus:ring-sky-300 outline-none"
-              placeholder="Enter your email"
+              onChange={(event) => setEmail(event.target.value)}
+              className={fieldStyles}
+              placeholder="you@example.com"
               required
             />
           </div>
-
           <div>
-            <label className="block my-5 text-sm font-medium text-sky-800 mb-1">
-              Password
-            </label>
-
+            <label htmlFor="login-password" className={labelStyles}>Password</label>
             <input
+              id="login-password"
               type="password"
+              autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-sky-200 px-4 py-2 focus:ring-2 focus:ring-sky-300 outline-none"
+              onChange={(event) => setPassword(event.target.value)}
+              className={fieldStyles}
               placeholder="Enter your password"
               required
             />
           </div>
-
-          <button
-            type="submit"
-            className="w-full mt-5 rounded-lg bg-gradient-to-r from-sky-400 to-cyan-400 text-white py-2 font-semibold hover:from-sky-500 hover:to-cyan-500 transition disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled={loading}
-          >
-            {loading ? "Submitting..." : "Login"}
+          <button type="submit" disabled={loading} className={`${buttonStyles.primary} w-full`}>
+            {loading ? <LoaderCircle className="size-4 animate-spin" /> : <LogIn className="size-4" />}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <p className="text-sm text-sky-700 text-center mt-4">
-          Don’t have an account?{" "}
-          <Link
-            className="text-cyan-600 font-semibold hover:underline"
-            to="/register"
-          >
-            Register
+        <p className="mt-6 text-center text-sm text-slate-500">
+          New to AIBLOG?{" "}
+          <Link className="font-semibold text-cyan-700 hover:text-cyan-800 hover:underline" to="/register">
+            Create an account
           </Link>
         </p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
-
-export default Login;
